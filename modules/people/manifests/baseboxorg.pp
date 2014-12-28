@@ -154,5 +154,7 @@ node default {
     'user.name':  value => 'Anthony Lai';
     'user.email': value => 'anthony.lai@hostname.io';
   }
+  
+  include projects::all
 
 }
