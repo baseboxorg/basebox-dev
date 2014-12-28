@@ -88,11 +88,6 @@ node default {
   include postgresql
   postgresql::db { 'basedb': }
   
-  include heroku
-  heroku::plugin { 'accounts':
-    source => 'ddollar/heroku-accounts'
-  }
-
   # For the latest build of v3
   include sublime_text
   sublime_text::package { 'Emmet':
