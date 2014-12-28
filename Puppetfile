@@ -70,12 +70,4 @@ github "libtool",  		"1.0.0"
 github "autoconf",      "1.0.0"
 github "sysctl",        "1.0.1"
 github "zsh",           "1.0.0"
-github "atom",          "1.1.0"
-
-
-
-
-
-
-
- 
+github "atom",          "1.1.0" 
