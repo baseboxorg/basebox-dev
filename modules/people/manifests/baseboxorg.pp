@@ -1,100 +1,163 @@
-class people::baseboxorg {
-  # Applications
-  include chrome::stable
-  include onepassword
-  include zsh
-  include homebrew
-  include iterm2::dev
-  include java
-  include atom
+require boxen::environment
+require homebrew
+require gcc
 
- 
-  ####################
-  # Start Config
- 
-  # OSX Defaults
-  boxen::osx_defaults { 'Disable Dashboard':
-    key    => 'mcx-disabled',
-    domain => 'com.apple.dashboard',
-    value  => 'YES',
+Exec {
+  group       => 'staff',
+  logoutput   => on_failure,
+  user        => $boxen_user,
+
+  path => [
+    "${boxen::config::home}/rbenv/shims",
+    "${boxen::config::home}/rbenv/bin",
+    "${boxen::config::home}/rbenv/plugins/ruby-build/bin",
+    "${boxen::config::home}/homebrew/bin",
+    '/usr/bin',
+    '/bin',
+    '/usr/sbin',
+    '/sbin'
+  ],
+
+  environment => [
+    "HOMEBREW_CACHE=${homebrew::config::cachedir}",
+    "HOME=/Users/${::boxen_user}"
+  ]
+}
+
+File {
+  group => 'staff',
+  owner => $boxen_user
+}
+
+Package {
+  provider => homebrew,
+  require  => Class['homebrew'],
+  install_options => ['--build-from-source']
+}
+
+Repository {
+  provider => git,
+  extra    => [
+    '--recurse-submodules'
+  ],
+  require  => File["${boxen::config::bindir}/boxen-git-credential"],
+  config   => {
+    'credential.helper' => "${boxen::config::bindir}/boxen-git-credential"
   }
-  boxen::osx_defaults { 'Disable reopen windows when logging back in':
-    key    => 'TALLogoutSavesState',
-    domain => 'com.apple.loginwindow',
-    value  => 'false',
+}
+
+Service {
+  provider => ghlaunchd
+}
+
+Homebrew::Formula <| |> -> Package <| |>
+
+node default {
+  # core modules, needed for most things
+  include dnsmasq
+  include git
+  include hub
+  include nginx
+
+  # Optional/custom modules. There are tons available at
+  # https://github.com/boxen.
+  include onepassword
+  include nmap
+  include virtualbox
+  include vagrant_manager
+  include vagrant
+  include alfred
+  include iterm2::stable
+  include chrome
+  include macvim
+  include appcleaner
+  include wget
+  include autoconf
+  include libtool
+  include pkgconfig
+  include pcre
+  include libpng
+  include mysql
+  include mysql_workbench
+  
+  include atom
+  atom::package { 'linter': }
+  atom::theme { 'monokai': }
+
+  
+  include postgresql
+  postgresql::db { 'basedb': }
+  
+  include heroku
+  heroku::plugin { 'accounts':
+    source => 'ddollar/heroku-accounts'
   }
-  boxen::osx_defaults { 'Disable press-and-hold character picker':
-    key    => 'ApplePressAndHoldEnabled',
-    domain => 'NSGlobalDomain',
-    value  => 'false',
+
+  # For the latest build of v3
+  include sublime_text
+  sublime_text::package { 'Emmet':
+  	source => 'sergeche/emmet-sublime'
   }
-  boxen::osx_defaults { 'Display full POSIX path as Finder Window':
-    key    => '_FXShowPosixPathInTitle',
-    domain => 'com.apple.finder',
-    value  => 'true',
+
+
+
+  # fail if FDE is not enabled
+  if $::root_encrypted == 'no' {
+    fail('Please enable full disk encryption and try again')
   }
-  boxen::osx_defaults { 'Secure Empty Trash':
-    key    => 'EmptyTrashSecurely',
-    domain => 'com.apple.finder',
-    value  => 'true',
+
+  # node versions
+  include nodejs::v0_6
+  include nodejs::v0_8
+  include nodejs::v0_10
+
+  # default ruby versions
+  ruby::version { '1.9.3': }
+  ruby::version { '2.0.0': }
+  ruby::version { '2.1.0': }
+  ruby::version { '2.1.1': }
+  ruby::version { '2.1.2': }
+
+  # common, useful packages
+  package {
+    [
+      'ack',
+      'findutils',
+      'gnu-tar',
+      'curl',
+      'dos2unix',
+      'findutils',
+      'gnu-tar',
+      'wget',
+      'pkg-config',
+      'coreutils',
+      'bash',
+      'docker',
+      'bash-completion',
+      'git-extras',
+      'binutils',
+      'diffutils',
+      'gzip'
+    ]:
+      provider  => homebrew,
+      require   => Exec['tap-homebrew-dupes'],
   }
-  boxen::osx_defaults { 'Always use current directory in default search':
-    key    => 'FXDefaultSearchScope',
-    domain => 'com.apple.finder',
-    value  => 'SCcf',
+
+  file { "${boxen::config::srcdir}/our-boxen":
+    ensure => link,
+    target => $boxen::config::repodir
   }
-  boxen::osx_defaults { 'Do not create .DS_Store':
-    key    => 'DSDontWriteNetworkStores',
-    domain => 'com.apple.dashboard',
-    value  => 'true',
+
+  git::config::global {
+    'alias.st':   value => 'status';
+    'alias.ci':   value => 'commit';
+    'alias.co':   value => 'checkout';
+    'alias.di':   value => 'diff';
+    'alias.dc':   value => 'diff --cached';
+    'alias.lp':   value => 'log -p';
+    'color.ui':   value => 'true';
+    'user.name':  value => 'Anthony Lai';
+    'user.email': value => 'anthony.lai@hostname.io';
   }
-  boxen::osx_defaults { "Disable 'natural scrolling'":
-    key    => 'com.apple.swipescrolldirection',
-    domain => 'NSGlobalDomain',
-    value  => 'false',
-  }
-  boxen::osx_defaults { 'Disable the "Are you sure you want to open this application?" dialog':
-    key    => 'LSQuarantine',
-    domain => 'com.apple.LaunchServices',
-    value  => 'true',
-  }
-  boxen::osx_defaults { 'fucking sane key repeat':
-    domain => 'NSGlobalDomain',
-    key    => 'KeyRepeat',
-    value  => '0',
-  }
-  boxen::osx_defaults { 'Expand save panel by default':
-      key    => 'NSNavPanelExpandedStateForSaveMode',
-      domain => 'NSGlobalDomain',
-      value  => 'true',
-  }
-  boxen::osx_defaults { 'Expand print panel by default':
-      key    => 'PMPrintingExpandedStateForPrint',
-      domain => 'NSGlobalDomain',
-      value  => 'true',
-  }
-  boxen::osx_defaults { 'Minimize on Double-Click':
-      key    => 'AppleMiniaturizeOnDoubleClick',
-      domain => 'NSGlobalDomain',
-      value  => 'true',
-  }
-  boxen::osx_defaults { 'Put my Dock on the left':
-    key    => 'orientation',
-    domain => 'com.apple.dock',
-    value  => 'left',
-  }
-  boxen::osx_defaults { 'Make function keys do real things, and not apple things':
-    key    => 'com.apple.keyboard.fnState',
-    domain => 'NSGlobalDomain',
-    value  => 'true',
-  }
- 
-  # Disable GateKeeper
-  exec { 'Disable Gatekeeper':
-    command => 'spctl --master-disable',
-    unless  => 'spctl --status | grep disabled',
-  }
- 
-  # End Config
-  ####################
+
 }
