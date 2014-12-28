@@ -85,8 +85,8 @@ node default {
   atom::theme { 'monokai': }
 
   
-  include postgresql
-  postgresql::db { 'basedb': }
+#  include postgresql
+#  postgresql::db { 'basedb': }
   
   # For the latest build of v3
   include sublime_text
